@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <title>QR-kod Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f8f9fa;
+        }
+        textarea {
+            width: 100%;
+            height: 150px;
+            padding: 10px;
+            font-size: 14px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin-top: 10px;
+            cursor: pointer;
+        }
+        .qr-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .qr-item {
+            text-align: center;
+        }
+        .qr-item img {
+            border: 1px solid #ccc;
+            background: white;
+            padding: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>QR-kod Generator</h1>
+    <p>Klistra in dina URL:er (en per rad):</p>
+    <textarea id="urlList" placeholder="https://exempel.com&#10;https://openai.com"></textarea>
+    <br>
+    <button onclick="generateQRCodes()">Generera QR-koder</button>
+    
+    <div id="qrCodes" class="qr-container"></div>
+
+    <!-- QRCode.js bibliotek -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script>
+        function generateQRCodes() {
+            const qrContainer = document.getElementById('qrCodes');
+            qrContainer.innerHTML = ''; // töm tidigare QR-koder
+
+            const urls = document.getElementById('urlList').value
+                .split('\n')
+                .map(url => url.trim())
+                .filter(url => url.length > 0);
+
+            urls.forEach((url, index) => {
+                const qrDiv = document.createElement('div');
+                qrDiv.classList.add('qr-item');
+
+                const qrCodeDiv = document.createElement('div');
+                const label = document.createElement('p');
+                label.textContent = url;
+
+                qrDiv.appendChild(qrCodeDiv);
+                qrDiv.appendChild(label);
+
+                qrContainer.appendChild(qrDiv);
+
+                new QRCode(qrCodeDiv, {
+                    text: url,
+                    width: 150,
+                    height: 150
+                });
+            });
+        }
+    </script>
+</body>
+</html>
