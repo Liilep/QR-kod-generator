@@ -35,6 +35,20 @@
             background: white;
             padding: 5px;
         }
+        .download-btn {
+            display: inline-block;
+            margin-top: 5px;
+            padding: 5px 10px;
+            font-size: 14px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .download-btn:hover {
+            background: #0056b3;
+        }
     </style>
 </head>
 <body>
@@ -43,40 +57,112 @@
     <textarea id="urlList" placeholder="https://exempel.com&#10;https://openai.com"></textarea>
     <br>
     <button onclick="generateQRCodes()">Generera QR-koder</button>
+    <button id="downloadAllBtn" style="display:none;" onclick="downloadAll()">Ladda ner alla</button>
     
     <div id="qrCodes" class="qr-container"></div>
 
-    <!-- QRCode.js bibliotek -->
+    <!-- QRCode.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- JSZip -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <!-- FileSaver.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
     <script>
+        let generatedImages = [];
+
         function generateQRCodes() {
             const qrContainer = document.getElementById('qrCodes');
-            qrContainer.innerHTML = ''; // töm tidigare QR-koder
+            const downloadAllBtn = document.getElementById('downloadAllBtn');
+            qrContainer.innerHTML = '';
+            generatedImages = [];
 
             const urls = document.getElementById('urlList').value
                 .split('\n')
                 .map(url => url.trim())
                 .filter(url => url.length > 0);
 
-            urls.forEach((url, index) => {
+            if (urls.length === 0) {
+                downloadAllBtn.style.display = 'none';
+                return;
+            }
+
+            urls.forEach(url => {
                 const qrDiv = document.createElement('div');
                 qrDiv.classList.add('qr-item');
 
                 const qrCodeDiv = document.createElement('div');
+                qrDiv.appendChild(qrCodeDiv);
+
                 const label = document.createElement('p');
                 label.textContent = url;
-
-                qrDiv.appendChild(qrCodeDiv);
                 qrDiv.appendChild(label);
+
+                const downloadBtn = document.createElement('button');
+                downloadBtn.textContent = 'Ladda ner';
+                downloadBtn.classList.add('download-btn');
+                qrDiv.appendChild(downloadBtn);
 
                 qrContainer.appendChild(qrDiv);
 
+                // Skapa QR
                 new QRCode(qrCodeDiv, {
                     text: url,
                     width: 150,
                     height: 150
                 });
+
+                // Vänta tills bilden genereras
+                setTimeout(() => {
+                    const img = qrCodeDiv.querySelector('img');
+                    if (img) {
+                        const fileName = sanitizeFileName(url) + '.png';
+                        generatedImages.push({ fileName, src: img.src });
+
+                        downloadBtn.onclick = () => {
+                            const a = document.createElement('a');
+                            a.href = img.src;
+                            a.download = fileName;
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                        };
+                    }
+                }, 300);
             });
+
+            setTimeout(() => {
+                downloadAllBtn.style.display = generatedImages.length > 0 ? 'inline-block' : 'none';
+            }, 500);
+        }
+
+        function sanitizeFileName(url) {
+            return url.replace(/[^a-z0-9]/gi, '_').substring(0, 50);
+        }
+
+        function downloadAll() {
+            if (generatedImages.length === 0) return;
+
+            const zip = new JSZip();
+            const imgFolder = zip.folder("QR_koder");
+
+            generatedImages.forEach(img => {
+                const base64Data = img.src.split(',')[1];
+                imgFolder.file(img.fileName, base64ToBlob(base64Data), { binary: true });
+            });
+
+            zip.generateAsync({ type: "blob" }).then(content => {
+                saveAs(content, "QR_koder.zip");
+            });
+        }
+
+        function base64ToBlob(base64) {
+            const byteCharacters = atob(base64);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            return new Blob([new Uint8Array(byteNumbers)], { type: 'image/png' });
         }
     </script>
 </body>
