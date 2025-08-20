@@ -15,6 +15,11 @@
             padding: 10px;
             font-size: 14px;
         }
+        input {
+            padding: 5px;
+            margin-right: 5px;
+            font-size: 14px;
+        }
         button {
             padding: 10px 20px;
             font-size: 16px;
@@ -55,7 +60,12 @@
     <h1>August's QR-kod Generator</h1>
     <p>Klistra in dina URL:er (en per rad):</p>
     <textarea id="urlList" placeholder="https://exempel.com&#10;https://openai.com"></textarea>
-    <br>
+    <br><br>
+    <p>Sätt namn och intervall för bilderna:</p>
+    <input type="text" id="filePrefix" placeholder="Exempel: Loge">
+    <input type="number" id="startNumber" placeholder="Startnummer" style="width:100px;">
+    <input type="number" id="endNumber" placeholder="Slutnummer" style="width:100px;">
+    <br><br>
     <button onclick="generateQRCodes()">Generera QR-koder</button>
     <button id="downloadAllBtn" style="display:none;" onclick="downloadAll()">Ladda ner alla</button>
     
@@ -87,7 +97,18 @@
                 return;
             }
 
-            urls.forEach(url => {
+            const prefix = document.getElementById('filePrefix').value || 'QR';
+            let startNum = parseInt(document.getElementById('startNumber').value) || 1;
+            const endNum = parseInt(document.getElementById('endNumber').value) || (startNum + urls.length - 1);
+
+            if (urls.length > (endNum - startNum + 1)) {
+                alert("Antalet URL:er överstiger det angivna intervallet! Justera start- eller slutnummer.");
+                return;
+            }
+
+            urls.forEach((url, index) => {
+                if (startNum + index > endNum) return;
+
                 const qrDiv = document.createElement('div');
                 qrDiv.classList.add('qr-item');
 
@@ -105,18 +126,16 @@
 
                 qrContainer.appendChild(qrDiv);
 
-                // Skapa QR
                 new QRCode(qrCodeDiv, {
                     text: url,
                     width: 150,
                     height: 150
                 });
 
-                // Vänta tills bilden genereras
                 setTimeout(() => {
                     const img = qrCodeDiv.querySelector('img');
                     if (img) {
-                        const fileName = sanitizeFileName(url) + '.png';
+                        const fileName = `${prefix} ${startNum + index}.png`;
                         generatedImages.push({ fileName, src: img.src });
 
                         downloadBtn.onclick = () => {
