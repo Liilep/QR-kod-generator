@@ -15,10 +15,12 @@
             padding: 10px;
             font-size: 14px;
         }
-        input {
+        input, label {
+            font-size: 14px;
+        }
+        input[type="text"], input[type="number"] {
             padding: 5px;
             margin-right: 5px;
-            font-size: 14px;
         }
         button {
             padding: 10px 20px;
@@ -66,6 +68,8 @@
     <input type="number" id="startNumber" placeholder="Startnummer" style="width:100px;">
     <input type="number" id="endNumber" placeholder="Slutnummer" style="width:100px;">
     <br><br>
+    <label><input type="checkbox" id="showName"> Visa namn under QR-koden</label>
+    <br><br>
     <button onclick="generateQRCodes()">Generera QR-koder</button>
     <button id="downloadAllBtn" style="display:none;" onclick="downloadAll()">Ladda ner alla</button>
     
@@ -100,6 +104,7 @@
             const prefix = document.getElementById('filePrefix').value || 'QR';
             let startNum = parseInt(document.getElementById('startNumber').value) || 1;
             const endNum = parseInt(document.getElementById('endNumber').value) || (startNum + urls.length - 1);
+            const showName = document.getElementById('showName').checked;
 
             if (urls.length > (endNum - startNum + 1)) {
                 alert("Antalet URL:er överstiger det angivna intervallet! Justera start- eller slutnummer.");
@@ -126,6 +131,7 @@
 
                 qrContainer.appendChild(qrDiv);
 
+                // Skapa QR
                 new QRCode(qrCodeDiv, {
                     text: url,
                     width: 150,
@@ -135,8 +141,29 @@
                 setTimeout(() => {
                     const img = qrCodeDiv.querySelector('img');
                     if (img) {
-                        const fileName = `${prefix} ${startNum + index}.png`;
+                        let fileName = `${prefix} ${startNum + index}.png`;
                         generatedImages.push({ fileName, src: img.src });
+
+                        // Om bockruta är vald, skapa canvas med text under QR
+                        if (showName) {
+                            const canvas = document.createElement('canvas');
+                            const image = new Image();
+                            image.src = img.src;
+                            image.onload = () => {
+                                canvas.width = image.width;
+                                canvas.height = image.height + 20;
+                                const ctx = canvas.getContext('2d');
+                                ctx.fillStyle = "#ffffff";
+                                ctx.fillRect(0,0,canvas.width,canvas.height);
+                                ctx.drawImage(image, 0, 0);
+                                ctx.fillStyle = "#000000";
+                                ctx.font = "16px Arial";
+                                ctx.textAlign = "center";
+                                ctx.fillText(fileName.replace('.png',''), canvas.width/2, canvas.height-5);
+                                img.src = canvas.toDataURL("image/png");
+                                generatedImages[index].src = img.src;
+                            };
+                        }
 
                         downloadBtn.onclick = () => {
                             const a = document.createElement('a');
@@ -153,10 +180,6 @@
             setTimeout(() => {
                 downloadAllBtn.style.display = generatedImages.length > 0 ? 'inline-block' : 'none';
             }, 500);
-        }
-
-        function sanitizeFileName(url) {
-            return url.replace(/[^a-z0-9]/gi, '_').substring(0, 50);
         }
 
         function downloadAll() {
