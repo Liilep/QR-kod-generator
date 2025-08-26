@@ -5,93 +5,56 @@
     <title>August's QR-kod Generator</title>
     <style>
         body {
-            font-family: "Courier New", monospace;
-            margin: 0;
-            background: black;
-            color: #00FF00; /* Grön CRT */
-            padding: 20px;
-        }
-        h1 {
-            text-align: center;
-            background: #111;
-            padding: 10px;
-            border: 2px solid #00FF00;
-            margin-bottom: 20px;
-        }
-        textarea, input, button {
-            font-family: "Courier New", monospace;
-            background: black;
-            color: #00FF00;
-            border: 2px solid #00FF00;
-            padding: 5px;
-            font-size: 16px;
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f8f9fa;
         }
         textarea {
             width: 100%;
             height: 150px;
+            padding: 10px;
+            font-size: 14px;
+        }
+        input, label {
+            font-size: 14px;
         }
         input[type="text"], input[type="number"] {
-            width: 150px;
-        }
-        label {
-            display: block;
-            margin: 10px 0;
+            padding: 5px;
+            margin-right: 5px;
         }
         button {
-            cursor: pointer;
+            padding: 10px 20px;
+            font-size: 16px;
             margin-top: 10px;
-            transition: all 0.2s;
-        }
-        button:hover {
-            background: #00FF00;
-            color: black;
-            animation: blink 0.8s step-start infinite;
+            cursor: pointer;
         }
         .qr-container {
             display: flex;
             flex-wrap: wrap;
-            gap: 30px;
+            gap: 20px;
             margin-top: 20px;
         }
         .qr-item {
             text-align: center;
-            border: 2px solid #00FF00;
-            padding: 10px;
-            background: #111;
-            animation: blink-in 1s ease-in;
         }
         .qr-item img {
-            background: black;
+            border: 1px solid #ccc;
+            background: white;
             padding: 5px;
         }
         .download-btn {
             display: inline-block;
-            margin-top: 10px;
-            padding: 5px 15px;
+            margin-top: 5px;
+            padding: 5px 10px;
             font-size: 14px;
-            border: 2px solid #00FF00;
-            background: black;
-            color: #00FF00;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
         }
         .download-btn:hover {
-            background: #00FF00;
-            color: black;
-            animation: blink 0.8s step-start infinite;
-        }
-        ::placeholder {
-            color: #008000;
-        }
-
-        /* Blink-effekt som på gammal terminal */
-        @keyframes blink {
-            50% { opacity: 0; }
-        }
-
-        /* Liten fade-in blink när QR dyker upp */
-        @keyframes blink-in {
-            0% { opacity: 0; }
-            50% { opacity: 0.2; }
-            100% { opacity: 1; }
+            background: #0056b3;
         }
     </style>
 </head>
@@ -102,8 +65,8 @@
     <br><br>
     <p>Sätt namn och intervall för bilderna:</p>
     <input type="text" id="filePrefix" placeholder="Exempel: Loge">
-    <input type="number" id="startNumber" placeholder="Startnummer">
-    <input type="number" id="endNumber" placeholder="Slutnummer">
+    <input type="number" id="startNumber" placeholder="Startnummer" style="width:100px;">
+    <input type="number" id="endNumber" placeholder="Slutnummer" style="width:100px;">
     <br><br>
     <label><input type="checkbox" id="showName"> Visa namn under QR-koden</label>
     <br><br>
@@ -119,6 +82,130 @@
     <!-- FileSaver.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
-    <!-- Din befintliga JS-kod här (oförändrad) -->
+    <script>
+        let generatedImages = [];
+
+        function generateQRCodes() {
+            const qrContainer = document.getElementById('qrCodes');
+            const downloadAllBtn = document.getElementById('downloadAllBtn');
+            qrContainer.innerHTML = '';
+            generatedImages = [];
+
+            const urls = document.getElementById('urlList').value
+                .split('\n')
+                .map(url => url.trim())
+                .filter(url => url.length > 0);
+
+            if (urls.length === 0) {
+                downloadAllBtn.style.display = 'none';
+                return;
+            }
+
+            const prefix = document.getElementById('filePrefix').value || 'QR';
+            let startNum = parseInt(document.getElementById('startNumber').value) || 1;
+            const endNum = parseInt(document.getElementById('endNumber').value) || (startNum + urls.length - 1);
+            const showName = document.getElementById('showName').checked;
+
+            if (urls.length > (endNum - startNum + 1)) {
+                alert("Antalet URL:er överstiger det angivna intervallet! Justera start- eller slutnummer.");
+                return;
+            }
+
+            urls.forEach((url, index) => {
+                if (startNum + index > endNum) return;
+
+                const qrDiv = document.createElement('div');
+                qrDiv.classList.add('qr-item');
+
+                const qrCodeDiv = document.createElement('div');
+                qrDiv.appendChild(qrCodeDiv);
+
+                const label = document.createElement('p');
+                label.textContent = url;
+                qrDiv.appendChild(label);
+
+                const downloadBtn = document.createElement('button');
+                downloadBtn.textContent = 'Ladda ner';
+                downloadBtn.classList.add('download-btn');
+                qrDiv.appendChild(downloadBtn);
+
+                qrContainer.appendChild(qrDiv);
+
+                // Skapa QR
+                new QRCode(qrCodeDiv, {
+                    text: url,
+                    width: 150,
+                    height: 150
+                });
+
+                setTimeout(() => {
+                    const img = qrCodeDiv.querySelector('img');
+                    if (img) {
+                        let fileName = `${prefix} ${startNum + index}.png`;
+                        generatedImages.push({ fileName, src: img.src });
+
+                        // Om bockruta är vald, skapa canvas med text under QR
+                        if (showName) {
+                            const canvas = document.createElement('canvas');
+                            const image = new Image();
+                            image.src = img.src;
+                            image.onload = () => {
+                                canvas.width = image.width;
+                                canvas.height = image.height + 20;
+                                const ctx = canvas.getContext('2d');
+                                ctx.fillStyle = "#ffffff";
+                                ctx.fillRect(0,0,canvas.width,canvas.height);
+                                ctx.drawImage(image, 0, 0);
+                                ctx.fillStyle = "#000000";
+                                ctx.font = "16px Arial";
+                                ctx.textAlign = "center";
+                                ctx.fillText(fileName.replace('.png',''), canvas.width/2, canvas.height-5);
+                                img.src = canvas.toDataURL("image/png");
+                                generatedImages[index].src = img.src;
+                            };
+                        }
+
+                        downloadBtn.onclick = () => {
+                            const a = document.createElement('a');
+                            a.href = img.src;
+                            a.download = fileName;
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                        };
+                    }
+                }, 300);
+            });
+
+            setTimeout(() => {
+                downloadAllBtn.style.display = generatedImages.length > 0 ? 'inline-block' : 'none';
+            }, 500);
+        }
+
+        function downloadAll() {
+            if (generatedImages.length === 0) return;
+
+            const zip = new JSZip();
+            const imgFolder = zip.folder("QR_koder");
+
+            generatedImages.forEach(img => {
+                const base64Data = img.src.split(',')[1];
+                imgFolder.file(img.fileName, base64ToBlob(base64Data), { binary: true });
+            });
+
+            zip.generateAsync({ type: "blob" }).then(content => {
+                saveAs(content, "QR_koder.zip");
+            });
+        }
+
+        function base64ToBlob(base64) {
+            const byteCharacters = atob(base64);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            return new Blob([new Uint8Array(byteNumbers)], { type: 'image/png' });
+        }
+    </script>
 </body>
 </html>
