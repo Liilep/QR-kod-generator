@@ -386,6 +386,19 @@
       grid-template-rows: repeat(2, 1fr);
     }
 
+    /* >>> NYTT: rad för förhandsvisningar bredvid varandra <<< */
+    .preview-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      align-items: flex-start;
+    }
+
+    .preview-col {
+      flex: 1 1 260px;
+      min-width: 0;
+    }
+
     @media (max-width: 640px) {
       .card {
         padding: 1.2rem 1.1rem;
@@ -557,20 +570,24 @@
         </div>
       </div>
 
-      <!-- FÖRHANDSVISNINGAR -->
+      <!-- FÖRHANDSVISNINGAR – NU BREDVID VARANDRA -->
       <div class="field-group">
-        <label>Förhandsvisning – en biljett</label>
-        <canvas id="previewCanvas" width="380" height="356"></canvas>
-        <div class="help">
-          Visar hur en enskild biljett ser ut med vald mallbild och QR-position.
-        </div>
-      </div>
+        <div class="preview-row">
+          <div class="preview-col">
+            <label>Förhandsvisning – en biljett</label>
+            <canvas id="previewCanvas" width="380" height="356"></canvas>
+            <div class="help">
+              Visar hur en enskild biljett ser ut med vald mallbild och QR-position.
+            </div>
+          </div>
 
-      <div class="field-group">
-        <label>Förhandsvisning – helt A4-ark</label>
-        <canvas id="previewPageCanvas" width="350" height="495"></canvas>
-        <div class="help">
-          Visar hur biljetterna fördelas på det faktiska A4-arket (alla rutor med mall + QR-placering).
+          <div class="preview-col">
+            <label>Förhandsvisning – helt A4-ark</label>
+            <canvas id="previewPageCanvas" width="350" height="495"></canvas>
+            <div class="help">
+              Visar hur biljetterna fördelas på det faktiska A4-arket (alla rutor med mall + QR-placering).
+            </div>
+          </div>
         </div>
       </div>
 
