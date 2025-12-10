@@ -1,271 +1,1265 @@
 <!DOCTYPE html>
 <html lang="sv">
 <head>
-    <meta charset="UTF-8">
-    <title>August's QR-kod Generator</title>
-    <style>
-        /* ====== Grundlayout ====== */
-        body {
-            font-family: 'Segoe UI', Roboto, sans-serif;
-            margin: 0;
-            background: #f4f6f9;
-            color: #333;
-            padding: 20px;
-        }
-        h1 {
-            text-align: center;
-            margin-bottom: 25px;
-            font-size: 2rem;
-            font-weight: 600;
-            color: #222;
-        }
-        p {
-            margin: 10px 0 5px;
-        }
+  <meta charset="UTF-8" />
+  <title>Augusts QR- & Biljettverktyg</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-        /* ====== Formulär ====== */
-        textarea, input, button {
-            font-family: inherit;
-            border-radius: 8px;
-            font-size: 15px;
-            border: 1px solid #ccc;
-            padding: 10px;
-            transition: all 0.2s ease-in-out;
-        }
-        textarea {
-            width: 100%;
-            height: 140px;
-            resize: vertical;
-        }
-        input[type="text"], input[type="number"] {
-            width: 180px;
-            margin-right: 10px;
-        }
-        textarea:focus, input:focus {
-            outline: none;
-            border-color: #4a90e2;
-            box-shadow: 0 0 0 3px rgba(74,144,226,0.2);
-        }
+  <!-- jsPDF -->
+  <script
+    src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"
+    defer
+  ></script>
 
-        label {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin: 12px 0;
-        }
+  <!-- QRCode.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <!-- JSZip -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <!-- FileSaver.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
-        /* ====== Knappar ====== */
-        button {
-            cursor: pointer;
-            border: none;
-            background: #4a90e2;
-            color: white;
-            font-size: 15px;
-            font-weight: 500;
-            padding: 10px 18px;
-            border-radius: 8px;
-            margin-top: 10px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-        }
-        button:hover {
-            background: #357ABD;
-        }
-        #downloadAllBtn {
-            background: #34a853;
-        }
-        #downloadAllBtn:hover {
-            background: #2a8642;
-        }
+  <style>
+    :root {
+      --blue: #2563eb;
+      --blue-dark: #1d4ed8;
+      --green: #34a853;
+      --green-dark: #2a8642;
+      --orange: #ff9800;
+      --orange-dark: #e68900;
+      --border: #d1d5db;
+      --bg: #f3f4f6;
+      --text: #111827;
+    }
 
-        /* ====== QR-container ====== */
-        .qr-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 25px;
-            margin-top: 30px;
-        }
-        .qr-item {
-            text-align: center;
-            background: #fff;
-            padding: 15px;
-            border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-            transition: transform 0.2s ease;
-        }
-        .qr-item:hover {
-            transform: translateY(-5px);
-        }
-        .qr-item p {
-            font-size: 13px;
-            word-break: break-word;
-            color: #666;
-        }
-        .qr-item img {
-            border-radius: 6px;
-            margin-bottom: 8px;
-        }
+    * {
+      box-sizing: border-box;
+    }
 
-        .download-btn {
-            background: #ff9800;
-            color: #fff;
-            font-size: 14px;
-            border-radius: 6px;
-            padding: 6px 12px;
-            margin-top: 6px;
-        }
-        .download-btn:hover {
-            background: #e68900;
-        }
-    </style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      padding: 1.5rem;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .page {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      margin-top: 0;
+      font-size: 2rem;
+      text-align: center;
+      margin-bottom: 0.25rem;
+    }
+
+    .lead {
+      text-align: center;
+      color: #4b5563;
+      margin-bottom: 1.5rem;
+      font-size: 0.95rem;
+    }
+
+    .card {
+      background: white;
+      padding: 1.5rem 1.75rem;
+      border-radius: 0.9rem;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+      margin-bottom: 1.5rem;
+    }
+
+    .card h2 {
+      margin-top: 0;
+      font-size: 1.3rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 1.6rem;
+      height: 1.6rem;
+      border-radius: 999px;
+      background: var(--blue);
+      color: white;
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+
+    .field-group {
+      margin-bottom: 1rem;
+    }
+
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    textarea,
+    select {
+      width: 100%;
+      padding: 0.5rem 0.75rem;
+      border-radius: 0.5rem;
+      border: 1px solid var(--border);
+      font-size: 0.95rem;
+      box-sizing: border-box;
+      font-family: inherit;
+      background: #ffffff;
+    }
+
+    textarea {
+      min-height: 110px;
+      resize: vertical;
+    }
+
+    input[type="file"] {
+      margin-top: 0.25rem;
+      font-size: 0.9rem;
+    }
+
+    input:focus,
+    textarea:focus,
+    select:focus {
+      outline: none;
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.18);
+    }
+
+    .help {
+      font-size: 0.8rem;
+      color: #6b7280;
+      margin-top: 0.2rem;
+    }
+
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    .row > .col {
+      flex: 1 1 180px;
+      min-width: 0;
+    }
+
+    .checkbox-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.9rem;
+      font-weight: 500;
+      margin-top: 0.25rem;
+    }
+
+    button {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.6rem 1.2rem;
+      border-radius: 999px;
+      border: none;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      background: var(--blue);
+      color: white;
+      box-shadow: 0 4px 12px rgba(37,99,235,0.35);
+      transition: transform 0.05s ease, box-shadow 0.05s ease, background 0.2s;
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: default;
+      box-shadow: none;
+    }
+
+    button:not(:disabled):hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 18px rgba(37,99,235,0.45);
+      background: var(--blue-dark);
+    }
+
+    .btn-secondary {
+      background: #6b7280;
+      box-shadow: 0 4px 12px rgba(55,65,81,0.35);
+    }
+    .btn-secondary:hover:not(:disabled) {
+      background: #4b5563;
+    }
+
+    .btn-green {
+      background: var(--green);
+      box-shadow: 0 4px 12px rgba(52,168,83,0.4);
+    }
+    .btn-green:hover:not(:disabled) {
+      background: var(--green-dark);
+    }
+
+    .btn-orange {
+      background: var(--orange);
+      box-shadow: 0 4px 12px rgba(255,152,0,0.4);
+    }
+    .btn-orange:hover:not(:disabled) {
+      background: var(--orange-dark);
+    }
+
+    .status {
+      margin-top: 0.5rem;
+      font-size: 0.85rem;
+      min-height: 1.2rem;
+    }
+    .status--ok {
+      color: #065f46;
+    }
+    .status--error {
+      color: #b91c1c;
+    }
+    .status--info {
+      color: #374151;
+    }
+
+    .qr-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+      gap: 18px;
+      margin-top: 1.25rem;
+    }
+
+    .qr-item {
+      text-align: center;
+      background: #fff;
+      padding: 0.85rem;
+      border-radius: 0.8rem;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+      transition: transform 0.15s ease;
+    }
+    .qr-item:hover {
+      transform: translateY(-3px);
+    }
+    .qr-item p {
+      font-size: 0.8rem;
+      word-break: break-word;
+      color: #6b7280;
+      margin: 0.35rem 0 0.4rem;
+    }
+    .qr-item img {
+      border-radius: 6px;
+      margin-bottom: 0.25rem;
+      width: 150px;
+      height: 150px;
+    }
+
+    .download-btn {
+      background: var(--orange);
+      color: #fff;
+      font-size: 0.8rem;
+      border-radius: 999px;
+      padding: 0.25rem 0.9rem;
+      margin-top: 0.2rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .little-pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.15rem 0.55rem;
+      border-radius: 999px;
+      background: #e5e7eb;
+      font-size: 0.8rem;
+      color: #4b5563;
+      margin-left: 0.25rem;
+    }
+
+    .qr-source {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      font-size: 0.9rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .qr-source label {
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      margin: 0;
+    }
+
+    .muted {
+      font-size: 0.8rem;
+      color: #6b7280;
+    }
+
+    /* Förhandsvisnings-canvas */
+    #previewCanvas,
+    #previewPageCanvas {
+      border-radius: 0.75rem;
+      border: 1px solid #e5e7eb;
+      background: #f9fafb;
+      display: block;
+      max-width: 100%;
+      margin-bottom: 0.5rem;
+    }
+
+    /* Små layout-förhandsvisningar */
+    .layout-previews {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-top: 0.6rem;
+    }
+
+    .layout-preview {
+      flex: 0 0 115px;
+      border-radius: 0.75rem;
+      border: 1px solid #e5e7eb;
+      padding: 0.45rem 0.55rem 0.6rem;
+      background: #f9fafb;
+      cursor: pointer;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease, transform 0.1s ease;
+    }
+
+    .layout-preview:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 10px rgba(148,163,184,0.35);
+    }
+
+    .layout-preview.active {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 2px rgba(37,99,235,0.35);
+      background: #eff6ff;
+    }
+
+    .layout-title {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #111827;
+      text-align: left;
+    }
+
+    .layout-title span {
+      display: block;
+      font-weight: 400;
+      color: #6b7280;
+      font-size: 0.7rem;
+    }
+
+    .layout-a4 {
+      width: 70px;
+      height: 100px;
+      margin: 0.35rem auto 0;
+      border-radius: 0.3rem;
+      border: 1px solid #d1d5db;
+      background: #e5e7eb;
+      display: grid;
+      gap: 1px;
+      padding: 1px;
+      box-sizing: border-box;
+    }
+
+    .layout-a4 .cell {
+      background: #ffffff;
+      border-radius: 0.15rem;
+    }
+
+    .layout-a4.standard {
+      grid-template-columns: repeat(2, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+    }
+
+    .layout-a4.a5 {
+      grid-template-columns: repeat(1, 1fr);
+      grid-template-rows: repeat(2, 1fr);
+    }
+
+    .layout-a4.a6 {
+      grid-template-columns: repeat(2, 1fr);
+      grid-template-rows: repeat(2, 1fr);
+    }
+
+    @media (max-width: 640px) {
+      .card {
+        padding: 1.2rem 1.1rem;
+      }
+    }
+  </style>
 </head>
 <body>
-    <h1>August's QR-kod Generator</h1>
-    <p>Klistra in dina URL:er (en per rad):</p>
-    <textarea id="urlList" placeholder="https://exempel.com&#10;https://openai.com"></textarea>
-    <br><br>
-    <p>Sätt namn och intervall för bilderna:</p>
-    <input type="text" id="filePrefix" placeholder="Exempel: Loge">
-    <input type="number" id="startNumber" placeholder="Startnummer" style="width:100px;">
-    <input type="number" id="endNumber" placeholder="Slutnummer" style="width:100px;">
-    <br><br>
-    <label><input type="checkbox" id="showName"> Visa namn under QR-koden</label>
-    <br><br>
-    <button onclick="generateQRCodes()">Generera QR-koder</button>
-    <button id="downloadAllBtn" style="display:none;" onclick="downloadAll()">Ladda ner alla</button>
-    
-    <div id="qrCodes" class="qr-container"></div>
+  <div class="page">
+    <h1>Augusts QR- & Biljettverktyg</h1>
+    <p class="lead">
+      Steg 1: Skapa QR-koder från URL:er. Steg 2: Lägg dem på en mallbild och generera A4-PDF.
+    </p>
 
-    <!-- QRCode.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <!-- JSZip -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <!-- FileSaver.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <!-- STEG 1: GENERERA QR-KODER -->
+    <section class="card">
+      <h2><span class="badge">1</span> Skapa QR-koder</h2>
 
-    <script>
-        let generatedImages = [];
+      <div class="field-group">
+        <label for="urlList">URL:er (en per rad)</label>
+        <textarea id="urlList" placeholder="https://exempel.com&#10;https://openai.com"></textarea>
+        <div class="help">
+          Varje rad blir en egen QR-kod.
+        </div>
+      </div>
 
-        function generateQRCodes() {
-            const qrContainer = document.getElementById('qrCodes');
-            const downloadAllBtn = document.getElementById('downloadAllBtn');
-            qrContainer.innerHTML = '';
-            generatedImages = [];
+      <div class="field-group">
+        <div class="row">
+          <div class="col">
+            <label for="filePrefix">Namn/prefix på filerna</label>
+            <input type="text" id="filePrefix" placeholder="Exempel: Loge" />
+          </div>
+          <div class="col">
+            <label for="startNumber">Startnummer</label>
+            <input type="number" id="startNumber" placeholder="1" />
+          </div>
+          <div class="col">
+            <label for="endNumber">Slutnummer (valfritt)</label>
+            <input type="number" id="endNumber" placeholder="Lämna tomt för auto" />
+          </div>
+        </div>
+        <div class="help">
+          Exempel: Prefix = "Loge", Start = 1, Slut = 50 → Loge 1.png, Loge 2.png, ...
+        </div>
+      </div>
 
-            const urls = document.getElementById('urlList').value
-                .split('\n')
-                .map(url => url.trim())
-                .filter(url => url.length > 0);
+      <div class="field-group">
+        <label class="checkbox-label">
+          <input type="checkbox" id="showName" />
+          Visa filnamn under QR-koden
+        </label>
+      </div>
 
-            if (urls.length === 0) {
-                downloadAllBtn.style.display = 'none';
-                return;
+      <div class="field-group">
+        <button class="btn-orange" id="generateQrBtn" type="button">Generera QR-koder</button>
+        <button class="btn-green" id="downloadAllBtn" type="button" style="display:none;">Ladda ner alla som zip</button>
+        <button class="btn-secondary" id="clearQrBtn" type="button">Rensa QR-listan</button>
+        <div id="qrStatus" class="status status--info"></div>
+      </div>
+
+      <div class="qr-container" id="qrCodes"></div>
+    </section>
+
+    <!-- STEG 2: GENERERA PDF MED MALLBILD -->
+    <section class="card">
+      <h2><span class="badge">2</span> Skapa PDF med mallbild (A4)</h2>
+
+      <div class="field-group">
+        <label for="templateFile">Mallbild</label>
+        <input id="templateFile" type="file" accept="image/*" />
+        <div class="help">
+          Standardlayout (6 per A4) funkar bra med mall ca 800 × 765 px.  
+          För A5/A6 kan du använda större mallar, de skalas automatiskt.
+        </div>
+      </div>
+
+      <div class="field-group">
+        <div class="qr-source">
+          <label>
+            <input type="radio" name="qrSource" value="generated" checked />
+            Använd QR-koder från steg 1
+            <span class="little-pill" id="generatedCountPill">0 st</span>
+          </label>
+          <label>
+            <input type="radio" name="qrSource" value="upload" />
+            Ladda upp färdiga QR-bilder
+          </label>
+        </div>
+        <input id="qrFiles" type="file" accept="image/png,image/jpeg" multiple />
+        <div class="help">
+          Om du väljer "Använd QR-koder från steg 1" ignoreras uppladdade filer.  
+          Väljer du "Ladda upp" används dessa bilder istället.
+        </div>
+      </div>
+
+      <!-- Biljettformat + små layout-förhandsvisningar -->
+      <div class="field-group">
+        <label for="ticketFormat">Biljettformat på A4</label>
+        <select id="ticketFormat">
+          <option value="standard" selected>Standard (6 per A4 – 2 × 3)</option>
+          <option value="a5">A5-liknande (2 per A4 – 1 × 2)</option>
+          <option value="a6">A6-liknande (4 per A4 – 2 × 2)</option>
+        </select>
+        <div class="help">
+          Välj ungefärlig storlek på biljetten när den skrivs ut på A4.
+        </div>
+
+        <div class="layout-previews">
+          <div class="layout-preview" data-format="standard">
+            <div class="layout-title">
+              Standard
+              <span>6 per A4 (2 × 3)</span>
+            </div>
+            <div class="layout-a4 standard">
+              <!-- 6 celler -->
+              <div class="cell"></div><div class="cell"></div>
+              <div class="cell"></div><div class="cell"></div>
+              <div class="cell"></div><div class="cell"></div>
+            </div>
+          </div>
+
+          <div class="layout-preview" data-format="a5">
+            <div class="layout-title">
+              A5-liknande
+              <span>2 per A4 (1 × 2)</span>
+            </div>
+            <div class="layout-a4 a5">
+              <!-- 2 celler -->
+              <div class="cell"></div>
+              <div class="cell"></div>
+            </div>
+          </div>
+
+          <div class="layout-preview" data-format="a6">
+            <div class="layout-title">
+              A6-liknande
+              <span>4 per A4 (2 × 2)</span>
+            </div>
+            <div class="layout-a4 a6">
+              <!-- 4 celler -->
+              <div class="cell"></div><div class="cell"></div>
+              <div class="cell"></div><div class="cell"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label>QR-position och storlek (mm på mallbilden, mitten ≈ 35 mm från vänster)</label>
+        <div class="row">
+          <div class="col">
+            <label for="qrOffsetX">QR X-position (mm)</label>
+            <input id="qrOffsetX" type="number" step="0.5" value="10" />
+            <div class="help">Avstånd från mallbildens vänstra kant.</div>
+          </div>
+          <div class="col">
+            <label for="qrOffsetY">QR Y-position (mm)</label>
+            <input id="qrOffsetY" type="number" step="0.5" value="10" />
+            <div class="help">Avstånd från mallbildens övre kant.</div>
+          </div>
+          <div class="col">
+            <label for="qrSize">QR storlek (mm)</label>
+            <input id="qrSize" type="number" step="0.5" value="25" />
+            <div class="help">Bredd och höjd (kvadrat).</div>
+          </div>
+        </div>
+        <div class="help">
+          Justera med testutskrifter tills det sitter perfekt.
+        </div>
+      </div>
+
+      <!-- FÖRHANDSVISNINGAR -->
+      <div class="field-group">
+        <label>Förhandsvisning – en biljett</label>
+        <canvas id="previewCanvas" width="380" height="356"></canvas>
+        <div class="help">
+          Visar hur en enskild biljett ser ut med vald mallbild och QR-position.
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label>Förhandsvisning – helt A4-ark</label>
+        <canvas id="previewPageCanvas" width="350" height="495"></canvas>
+        <div class="help">
+          Visar hur biljetterna fördelas på det faktiska A4-arket (alla rutor med mall + QR-placering).
+        </div>
+      </div>
+
+      <div class="field-group">
+        <button id="generatePdfBtn" type="button">Generera PDF på A4</button>
+        <div class="muted">
+          Biljetter skapas i ordning, en per QR-kod. Behöver du många kan det ta några sekunder.
+        </div>
+        <div id="pdfStatusText" class="status status--info"></div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    // --- Global state för QR-bilder från steg 1 ---
+    let generatedImages = []; // { fileName, src }
+
+    // --- Cache för mallbild till förhandsvisning ---
+    const previewTemplateCache = {
+      dataUrl: null,
+      ratio: 1,
+      img: null
+    };
+
+    // --- Hjälpfunktioner för statusmeddelanden ---
+    function setQrStatus(message, type = "info") {
+      const el = document.getElementById("qrStatus");
+      el.textContent = message || "";
+      el.className = "status status--" + type;
+      console.log("QR STATUS:", message);
+    }
+
+    function setPdfStatus(message, type = "info") {
+      const el = document.getElementById("pdfStatusText");
+      el.textContent = message || "";
+      el.className = "status status--" + type;
+      console.log("PDF STATUS:", message);
+    }
+
+    // --- Hjälpfunktioner för fil-/bildhantering ---
+    function readFileAsDataURL(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = e => resolve(e.target.result);
+        reader.onerror = err => reject(err);
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function getImageSize(dataUrl) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+          resolve({ width: img.naturalWidth, height: img.naturalHeight });
+        };
+        img.onerror = (err) => reject(err);
+        img.src = dataUrl;
+      });
+    }
+
+    async function loadQrImagesFromUpload(fileList) {
+      const files = Array.from(fileList || []);
+      const result = [];
+      for (const file of files) {
+        if (!file.type.startsWith("image/")) continue;
+        const dataUrl = await readFileAsDataURL(file);
+        result.push({ name: file.name, dataUrl });
+      }
+      return result;
+    }
+
+    function base64ToBlob(base64) {
+      const byteCharacters = atob(base64);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      return new Blob([new Uint8Array(byteNumbers)], { type: 'image/png' });
+    }
+
+    // --- STEG 1: GENERERA QR-KODER ---
+    function updateGeneratedCountPill() {
+      const pill = document.getElementById("generatedCountPill");
+      pill.textContent = generatedImages.length + " st";
+    }
+
+    function clearQrList() {
+      const qrContainer = document.getElementById("qrCodes");
+      qrContainer.innerHTML = "";
+      generatedImages = [];
+      updateGeneratedCountPill();
+      setQrStatus("Rensade genererade QR-koder.", "info");
+      document.getElementById("downloadAllBtn").style.display = "none";
+    }
+
+    function generateQRCodes() {
+      const qrContainer = document.getElementById('qrCodes');
+      const downloadAllBtn = document.getElementById('downloadAllBtn');
+      const generateBtn = document.getElementById('generateQrBtn');
+
+      qrContainer.innerHTML = '';
+      generatedImages = [];
+      updateGeneratedCountPill();
+      setQrStatus("Genererar QR-koder...", "info");
+
+      const urls = document.getElementById('urlList').value
+        .split('\n')
+        .map(url => url.trim())
+        .filter(url => url.length > 0);
+
+      if (urls.length === 0) {
+        downloadAllBtn.style.display = 'none';
+        setQrStatus("Inga URL:er ifyllda.", "error");
+        return;
+      }
+
+      const prefix = document.getElementById('filePrefix').value || 'QR';
+      let startNum = parseInt(document.getElementById('startNumber').value) || 1;
+      const endNumInput = document.getElementById('endNumber').value;
+      const endNum = endNumInput ? parseInt(endNumInput) : (startNum + urls.length - 1);
+      const showName = document.getElementById('showName').checked;
+
+      if (urls.length > (endNum - startNum + 1)) {
+        alert("Antalet URL:er överstiger det angivna intervallet! Justera start- eller slutnummer.");
+        setQrStatus("Justera intervallen eller antal URL:er.", "error");
+        return;
+      }
+
+      generateBtn.disabled = true;
+      downloadAllBtn.style.display = 'none';
+
+      urls.forEach((url, index) => {
+        if (startNum + index > endNum) return;
+
+        const qrDiv = document.createElement('div');
+        qrDiv.classList.add('qr-item');
+
+        const qrCodeDiv = document.createElement('div');
+        qrDiv.appendChild(qrCodeDiv);
+
+        const label = document.createElement('p');
+        label.textContent = url;
+        qrDiv.appendChild(label);
+
+        const downloadBtn = document.createElement('button');
+        downloadBtn.textContent = 'Ladda ner';
+        downloadBtn.classList.add('download-btn');
+        qrDiv.appendChild(downloadBtn);
+
+        qrContainer.appendChild(qrDiv);
+
+        // Skapa QR
+        new QRCode(qrCodeDiv, {
+          text: url,
+          width: 150,
+          height: 150
+        });
+
+        // Vänta lite tills <img> dykt upp
+        setTimeout(() => {
+          const img = qrCodeDiv.querySelector('img');
+          if (img) {
+            let fileName = `${prefix} ${startNum + index}.png`;
+            generatedImages.push({ fileName, src: img.src });
+
+            // Om bockruta är vald, skapa canvas med text under QR
+            if (showName) {
+              const canvas = document.createElement('canvas');
+              const image = new Image();
+              image.src = img.src;
+              image.onload = () => {
+                canvas.width = image.width;
+                canvas.height = image.height + 22;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = "#ffffff";
+                ctx.fillRect(0,0,canvas.width,canvas.height);
+                ctx.drawImage(image, 0, 0);
+                ctx.fillStyle = "#000000";
+                ctx.font = "16px Arial";
+                ctx.textAlign = "center";
+                ctx.fillText(fileName.replace('.png',''), canvas.width/2, canvas.height-5);
+                img.src = canvas.toDataURL("image/png");
+                generatedImages[index].src = img.src;
+              };
             }
 
-            const prefix = document.getElementById('filePrefix').value || 'QR';
-            let startNum = parseInt(document.getElementById('startNumber').value) || 1;
-            const endNum = parseInt(document.getElementById('endNumber').value) || (startNum + urls.length - 1);
-            const showName = document.getElementById('showName').checked;
+            downloadBtn.onclick = () => {
+              const a = document.createElement('a');
+              a.href = img.src;
+              a.download = fileName;
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+            };
+          }
+          updateGeneratedCountPill();
+        }, 300);
+      });
 
-            if (urls.length > (endNum - startNum + 1)) {
-                alert("Antalet URL:er överstiger det angivna intervallet! Justera start- eller slutnummer.");
-                return;
+      setTimeout(() => {
+        downloadAllBtn.style.display = generatedImages.length > 0 ? 'inline-flex' : 'none';
+        generateBtn.disabled = false;
+        if (generatedImages.length > 0) {
+          setQrStatus("Klar! " + generatedImages.length + " QR-koder genererade.", "ok");
+        } else {
+          setQrStatus("Inga QR-koder kunde genereras.", "error");
+        }
+      }, 700);
+    }
+
+    function downloadAll() {
+      if (generatedImages.length === 0) return;
+
+      setQrStatus("Skapar zip-fil...", "info");
+
+      const zip = new JSZip();
+      const imgFolder = zip.folder("QR_koder");
+
+      generatedImages.forEach(img => {
+        const base64Data = img.src.split(',')[1];
+        imgFolder.file(img.fileName, base64ToBlob(base64Data), { binary: true });
+      });
+
+      zip.generateAsync({ type: "blob" }).then(content => {
+        saveAs(content, "QR_koder.zip");
+        setQrStatus("Zip-fil nedladdad.", "ok");
+      }).catch(err => {
+        console.error(err);
+        setQrStatus("Fel vid skapande av zip-fil: " + err.message, "error");
+      });
+    }
+
+    // --- Layout-grid per format ---
+    function getTicketGridForFormat(format) {
+      // A4 portrait: 210 x 297 mm, margin 10 mm
+      // Standard: 6 per A4 (2 × 3)
+      // A5-liknande: 2 per A4 (1 × 2)
+      // A6-liknande: 4 per A4 (2 × 2)
+      const marginMm = 10;
+      if (format === "a5") {
+        return { marginMm, columns: 1, rows: 2 };
+      } else if (format === "a6") {
+        return { marginMm, columns: 2, rows: 2 };
+      } else {
+        return { marginMm, columns: 2, rows: 3 };
+      }
+    }
+
+    // --- Förhandsvisning: en biljett ---
+    function drawSinglePreview() {
+      const canvas = document.getElementById("previewCanvas");
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+
+      // Bakgrund
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#f9fafb";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const format = document.getElementById("ticketFormat").value || "standard";
+      const pageWidthMm = 210;
+      const pageHeightMm = 297;
+
+      const { marginMm, columns, rows } = getTicketGridForFormat(format);
+
+      const cellWidthMm = (pageWidthMm - 2 * marginMm) / columns;
+      const cellHeightMm = (pageHeightMm - 2 * marginMm) / rows;
+
+      // Skala mm -> px så att cellens bredd fyller canvas
+      const scale = canvas.width / cellWidthMm;
+      const cellPxW = cellWidthMm * scale;
+      const cellPxH = cellHeightMm * scale;
+
+      const cellX = (canvas.width - cellPxW) / 2;
+      const cellY = (canvas.height - cellPxH) / 2;
+
+      // Rita cellram (biljettkant)
+      ctx.strokeStyle = "#d1d5db";
+      ctx.lineWidth = 1.2;
+      ctx.strokeRect(cellX, cellY, cellPxW, cellPxH);
+
+      // Om ingen mallbild vald: visa text
+      if (!previewTemplateCache.img) {
+        ctx.fillStyle = "#9ca3af";
+        ctx.font = "14px system-ui, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("Välj mallbild för förhandsvisning", canvas.width / 2, canvas.height / 2);
+        return;
+      }
+
+      const img = previewTemplateCache.img;
+      const templateRatio = previewTemplateCache.ratio; // h/w
+
+      // Samma "contain"-logik som i PDF
+      const cellAspect = cellPxW / cellPxH;
+      const imgAspect = 1 / templateRatio; // w/h
+      let drawW, drawH;
+
+      if (imgAspect > cellAspect) {
+        drawW = cellPxW;
+        drawH = drawW * templateRatio;
+      } else {
+        drawH = cellPxH;
+        drawW = drawH / templateRatio;
+      }
+
+      const imgX = cellX + (cellPxW - drawW) / 2;
+      const imgY = cellY + (cellPxH - drawH) / 2;
+
+      // Rita mallbilden
+      ctx.drawImage(img, imgX, imgY, drawW, drawH);
+
+      // Hämta QR-parametrar
+      const qrOffsetXmm = parseFloat(document.getElementById("qrOffsetX").value) || 0;
+      const qrOffsetYmm = parseFloat(document.getElementById("qrOffsetY").value) || 0;
+      const qrSizemm   = parseFloat(document.getElementById("qrSize").value)   || 20;
+
+      const qrOffsetXpx = qrOffsetXmm * scale;
+      const qrOffsetYpx = qrOffsetYmm * scale;
+      const qrSizePx    = qrSizemm * scale;
+
+      const qrX = imgX + qrOffsetXpx;
+      const qrY = imgY + qrOffsetYpx;
+
+      // Rita "dummy"-QR som mörk kvadrat (positionen är det viktiga)
+      ctx.fillStyle = "rgba(15,23,42,0.9)";
+      ctx.fillRect(qrX, qrY, qrSizePx, qrSizePx);
+
+      // Liten kant
+      ctx.strokeStyle = "#f9fafb";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(qrX, qrY, qrSizePx, qrSizePx);
+    }
+
+    // --- Förhandsvisning: helt A4-ark ---
+    function drawPagePreview() {
+      const canvas = document.getElementById("previewPageCanvas");
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+
+      const pageWidthMm = 210;
+      const pageHeightMm = 297;
+      const format = document.getElementById("ticketFormat").value || "standard";
+      const { marginMm, columns, rows } = getTicketGridForFormat(format);
+
+      // Bakgrund
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#f9fafb";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Skala mm -> px så att hela A4 får plats i canvas
+      const scale = Math.min(
+        canvas.width / pageWidthMm,
+        canvas.height / pageHeightMm
+      );
+      const pagePxW = pageWidthMm * scale;
+      const pagePxH = pageHeightMm * scale;
+      const pageX = (canvas.width - pagePxW) / 2;
+      const pageY = (canvas.height - pagePxH) / 2;
+
+      // Rita A4-ram
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(pageX, pageY, pagePxW, pagePxH);
+      ctx.strokeStyle = "#d1d5db";
+      ctx.lineWidth = 1.2;
+      ctx.strokeRect(pageX, pageY, pagePxW, pagePxH);
+
+      const cellWidthMm = (pageWidthMm - 2 * marginMm) / columns;
+      const cellHeightMm = (pageHeightMm - 2 * marginMm) / rows;
+
+      // Om ingen mallbild: rita bara cellerna
+      const hasTemplate = !!previewTemplateCache.img;
+      const img = previewTemplateCache.img;
+      const templateRatio = previewTemplateCache.ratio; // h/w
+
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < columns; c++) {
+          const cellXmm = marginMm + c * cellWidthMm;
+          const cellYmm = marginMm + r * cellHeightMm;
+
+          const cellX = pageX + cellXmm * scale;
+          const cellY = pageY + cellYmm * scale;
+          const cellW = cellWidthMm * scale;
+          const cellH = cellHeightMm * scale;
+
+          // Cellram
+          ctx.strokeStyle = "#e5e7eb";
+          ctx.lineWidth = 1;
+          ctx.strokeRect(cellX, cellY, cellW, cellH);
+
+          if (hasTemplate) {
+            // Mallbildcontain i cellen
+            const cellAspect = cellW / cellH;
+            const imgAspect = 1 / templateRatio; // w/h
+            let drawW, drawH;
+
+            if (imgAspect > cellAspect) {
+              drawW = cellW;
+              drawH = drawW * templateRatio;
+            } else {
+              drawH = cellH;
+              drawW = drawH / templateRatio;
             }
 
-            urls.forEach((url, index) => {
-                if (startNum + index > endNum) return;
+            const imgX = cellX + (cellW - drawW) / 2;
+            const imgY = cellY + (cellH - drawH) / 2;
 
-                const qrDiv = document.createElement('div');
-                qrDiv.classList.add('qr-item');
+            ctx.drawImage(img, imgX, imgY, drawW, drawH);
 
-                const qrCodeDiv = document.createElement('div');
-                qrDiv.appendChild(qrCodeDiv);
+            // QR-offset i mm -> px via samma scale
+            const qrOffsetXmm = parseFloat(document.getElementById("qrOffsetX").value) || 0;
+            const qrOffsetYmm = parseFloat(document.getElementById("qrOffsetY").value) || 0;
+            const qrSizemm   = parseFloat(document.getElementById("qrSize").value)   || 20;
 
-                const label = document.createElement('p');
-                label.textContent = url;
-                qrDiv.appendChild(label);
+            const qrOffsetXpx = qrOffsetXmm * scale;
+            const qrOffsetYpx = qrOffsetYmm * scale;
+            const qrSizePx    = qrSizemm * scale;
 
-                const downloadBtn = document.createElement('button');
-                downloadBtn.textContent = 'Ladda ner';
-                downloadBtn.classList.add('download-btn');
-                qrDiv.appendChild(downloadBtn);
+            const qrX = imgX + qrOffsetXpx;
+            const qrY = imgY + qrOffsetYpx;
 
-                qrContainer.appendChild(qrDiv);
+            ctx.fillStyle = "rgba(15,23,42,0.9)";
+            ctx.fillRect(qrX, qrY, qrSizePx, qrSizePx);
+            ctx.strokeStyle = "#f9fafb";
+            ctx.lineWidth = 1.5;
+            ctx.strokeRect(qrX, qrY, qrSizePx, qrSizePx);
+          } else {
+            // Cell utan mall: fyll lite ljusare
+            ctx.fillStyle = "#f3f4f6";
+            ctx.fillRect(cellX + 1, cellY + 1, cellW - 2, cellH - 2);
+          }
+        }
+      }
 
-                // Skapa QR
-                new QRCode(qrCodeDiv, {
-                    text: url,
-                    width: 150,
-                    height: 150
-                });
+      if (!hasTemplate) {
+        ctx.fillStyle = "#9ca3af";
+        ctx.font = "13px system-ui, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("Välj mallbild för full A4-förhandsvisning", canvas.width / 2, canvas.height / 2);
+      }
+    }
 
-                setTimeout(() => {
-                    const img = qrCodeDiv.querySelector('img');
-                    if (img) {
-                        let fileName = `${prefix} ${startNum + index}.png`;
-                        generatedImages.push({ fileName, src: img.src });
+    function drawAllPreviews() {
+      drawSinglePreview();
+      drawPagePreview();
+    }
 
-                        // Om bockruta är vald, skapa canvas med text under QR
-                        if (showName) {
-                            const canvas = document.createElement('canvas');
-                            const image = new Image();
-                            image.src = img.src;
-                            image.onload = () => {
-                                canvas.width = image.width;
-                                canvas.height = image.height + 20;
-                                const ctx = canvas.getContext('2d');
-                                ctx.fillStyle = "#ffffff";
-                                ctx.fillRect(0,0,canvas.width,canvas.height);
-                                ctx.drawImage(image, 0, 0);
-                                ctx.fillStyle = "#000000";
-                                ctx.font = "16px Arial";
-                                ctx.textAlign = "center";
-                                ctx.fillText(fileName.replace('.png',''), canvas.width/2, canvas.height-5);
-                                img.src = canvas.toDataURL("image/png");
-                                generatedImages[index].src = img.src;
-                            };
-                        }
+    function updateLayoutPreviewActive() {
+      const format = document.getElementById("ticketFormat").value || "standard";
+      document.querySelectorAll(".layout-preview").forEach(el => {
+        el.classList.toggle("active", el.dataset.format === format);
+      });
+    }
 
-                        downloadBtn.onclick = () => {
-                            const a = document.createElement('a');
-                            a.href = img.src;
-                            a.download = fileName;
-                            document.body.appendChild(a);
-                            a.click();
-                            document.body.removeChild(a);
-                        };
-                    }
-                }, 300);
-            });
+    // --- STEG 2: GENERERA PDF MED MALLBILD OCH QR-KODER ---
+    async function generatePdf() {
+      if (!window.jspdf || !window.jspdf.jsPDF) {
+        setPdfStatus("jsPDF kunde inte laddas. Kontrollera internetanslutningen.", "error");
+        alert("Fel: jsPDF-biblioteket laddades inte. Prova att ladda om sidan.");
+        return;
+      }
 
-            setTimeout(() => {
-                downloadAllBtn.style.display = generatedImages.length > 0 ? 'inline-block' : 'none';
-            }, 500);
+      const templateInput = document.getElementById("templateFile");
+      if (!templateInput.files || templateInput.files.length === 0) {
+        setPdfStatus("Du måste välja en mallbild.", "error");
+        alert("Välj en mallbild först.");
+        return;
+      }
+
+      const qrSourceChoice = document.querySelector('input[name="qrSource"]:checked')?.value || "generated";
+      const qrUploadInput = document.getElementById("qrFiles");
+      let qrImages = [];
+
+      try {
+        if (qrSourceChoice === "generated") {
+          if (!generatedImages.length) {
+            setPdfStatus("Inga genererade QR-koder. Skapa dem i steg 1 först, eller välj 'Ladda upp'.", "error");
+            alert("Inga genererade QR-koder hittades. Skapa QR-koder i steg 1 eller välj 'Ladda upp QR-bilder'.");
+            return;
+          }
+          qrImages = generatedImages.map(img => ({
+            name: img.fileName,
+            dataUrl: img.src
+          }));
+        } else {
+          const qrFiles = qrUploadInput.files;
+          if (!qrFiles || qrFiles.length === 0) {
+            setPdfStatus("Du måste välja minst en QR-kodfil när du använder uppladdning.", "error");
+            alert("Välj minst en QR-kodbild innan du genererar PDF.");
+            return;
+          }
+          qrImages = await loadQrImagesFromUpload(qrFiles);
+          if (qrImages.length === 0) {
+            setPdfStatus("Hittade inga giltiga QR-bildfiler.", "error");
+            return;
+          }
         }
 
-        function downloadAll() {
-            if (generatedImages.length === 0) return;
+        const qrOffsetXmm = parseFloat(document.getElementById("qrOffsetX").value) || 0;
+        const qrOffsetYmm = parseFloat(document.getElementById("qrOffsetY").value) || 0;
+        const qrSizemm   = parseFloat(document.getElementById("qrSize").value)   || 20;
 
-            const zip = new JSZip();
-            const imgFolder = zip.folder("QR_koder");
+        const generatePdfBtn = document.getElementById("generatePdfBtn");
+        generatePdfBtn.disabled = true;
+        setPdfStatus("Läser in mallbild och QR-koder...", "info");
 
-            generatedImages.forEach(img => {
-                const base64Data = img.src.split(',')[1];
-                imgFolder.file(img.fileName, base64ToBlob(base64Data), { binary: true });
-            });
+        // Läs mallbilden
+        const templateFile = templateInput.files[0];
+        const templateDataUrl = await readFileAsDataURL(templateFile);
+        const templateSize = await getImageSize(templateDataUrl);
+        const templateRatio = templateSize.height / templateSize.width; // h/w
+        const templateType = templateDataUrl.startsWith("data:image/jpeg") ? "JPEG" : "PNG";
 
-            zip.generateAsync({ type: "blob" }).then(content => {
-                saveAs(content, "QR_koder.zip");
-            });
+        setPdfStatus("Genererar PDF...", "info");
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({
+          orientation: "portrait",
+          unit: "mm",
+          format: "a4"
+        });
+
+        const pageWidth = doc.internal.pageSize.getWidth();   // 210 mm
+        const pageHeight = doc.internal.pageSize.getHeight(); // 297 mm
+
+        const format = document.getElementById("ticketFormat").value || "standard";
+        const grid = getTicketGridForFormat(format);
+        const margin = grid.marginMm;
+        const columns = grid.columns;
+        const rows = grid.rows;
+
+        const cellWidth = (pageWidth - margin * 2) / columns;
+        const cellHeight = (pageHeight - margin * 2) / rows;
+
+        qrImages.forEach((qr, index) => {
+          const ticketsPerPage = columns * rows;
+          const positionInPage = index % ticketsPerPage;
+          const row = Math.floor(positionInPage / columns);
+          const col = positionInPage % columns;
+
+          if (index > 0 && positionInPage === 0) {
+            doc.addPage();
+          }
+
+          const cellX = margin + col * cellWidth;
+          const cellY = margin + row * cellHeight;
+
+          // Frivillig svag ram runt varje biljett
+          doc.setDrawColor(220);
+          doc.setLineWidth(0.2);
+          doc.rect(cellX, cellY, cellWidth, cellHeight);
+
+          // Anpassa mallbilden till cellen (contain)
+          const cellAspect = cellWidth / cellHeight;
+          const imgAspect = 1 / templateRatio; // w/h
+          let drawWidth, drawHeight;
+
+          if (imgAspect > cellAspect) {
+            drawWidth = cellWidth;
+            drawHeight = drawWidth * templateRatio;
+          } else {
+            drawHeight = cellHeight;
+            drawWidth = drawHeight / templateRatio;
+          }
+
+          const imgX = cellX + (cellWidth - drawWidth) / 2;
+          const imgY = cellY + (cellHeight - drawHeight) / 2;
+
+          // Rita mallbilden
+          doc.addImage(
+            templateDataUrl,
+            templateType,
+            imgX,
+            imgY,
+            drawWidth,
+            drawHeight
+          );
+
+          // QR-position relativt mallbildens övre vänstra hörn
+          const qrX = imgX + qrOffsetXmm;
+          const qrY = imgY + qrOffsetYmm;
+          const qrType = qr.dataUrl.startsWith("data:image/jpeg") ? "JPEG" : "PNG";
+
+          // Rita QR-bilden
+          doc.addImage(
+            qr.dataUrl,
+            qrType,
+            qrX,
+            qrY,
+            qrSizemm,
+            qrSizemm
+          );
+        });
+
+        const fileName = "biljetter_mall_qr.pdf";
+        doc.save(fileName);
+        setPdfStatus(
+          "Klar! PDF nedladdad: " + fileName + " (" + qrImages.length + " biljetter, format: " +
+          (format === "a5" ? "A5-liknande" : format === "a6" ? "A6-liknande" : "Standard") + ")",
+          "ok"
+        );
+        alert("PDF genererad och nedladdad: " + fileName);
+      } catch (err) {
+        console.error(err);
+        setPdfStatus("Något gick fel vid generering av PDF: " + err.message, "error");
+        alert("Fel vid generering av PDF: " + err.message);
+      } finally {
+        document.getElementById("generatePdfBtn").disabled = false;
+      }
+    }
+
+    // --- Init ---
+    window.addEventListener("DOMContentLoaded", () => {
+      document.getElementById("generateQrBtn").addEventListener("click", generateQRCodes);
+      document.getElementById("downloadAllBtn").addEventListener("click", downloadAll);
+      document.getElementById("clearQrBtn").addEventListener("click", clearQrList);
+      document.getElementById("generatePdfBtn").addEventListener("click", generatePdf);
+
+      // Ladda mallbild till förhandsvisning när den ändras
+      const templateInput = document.getElementById("templateFile");
+      templateInput.addEventListener("change", async () => {
+        if (!templateInput.files || !templateInput.files[0]) {
+          previewTemplateCache.dataUrl = null;
+          previewTemplateCache.img = null;
+          drawAllPreviews();
+          return;
         }
-
-        function base64ToBlob(base64) {
-            const byteCharacters = atob(base64);
-            const byteNumbers = new Array(byteCharacters.length);
-            for (let i = 0; i < byteCharacters.length; i++) {
-                byteNumbers[i] = byteCharacters.charCodeAt(i);
-            }
-            return new Blob([new Uint8Array(byteNumbers)], { type: 'image/png' });
+        try {
+          const file = templateInput.files[0];
+          const dataUrl = await readFileAsDataURL(file);
+          const img = new Image();
+          img.onload = () => {
+            previewTemplateCache.dataUrl = dataUrl;
+            previewTemplateCache.img = img;
+            previewTemplateCache.ratio = img.naturalHeight / img.naturalWidth;
+            drawAllPreviews();
+          };
+          img.src = dataUrl;
+        } catch (err) {
+          console.error(err);
         }
-    </script>
+      });
+
+      // Uppdatera förhandsvisningar när QR-position/storlek/format ändras
+      ["qrOffsetX", "qrOffsetY", "qrSize", "ticketFormat"].forEach(id => {
+        const el = document.getElementById(id);
+        el.addEventListener("input", () => {
+          drawAllPreviews();
+          if (id === "ticketFormat") updateLayoutPreviewActive();
+        });
+        el.addEventListener("change", () => {
+          drawAllPreviews();
+          if (id === "ticketFormat") updateLayoutPreviewActive();
+        });
+      });
+
+      // Klick på små layout-previews ska också ändra formatet
+      document.querySelectorAll(".layout-preview").forEach(el => {
+        el.addEventListener("click", () => {
+          const format = el.dataset.format;
+          const select = document.getElementById("ticketFormat");
+          select.value = format;
+          updateLayoutPreviewActive();
+          drawAllPreviews();
+        });
+      });
+
+      // Ändra status när källa för QR för PDF ändras
+      document.querySelectorAll('input[name="qrSource"]').forEach(radio => {
+        radio.addEventListener("change", () => {
+          const choice = document.querySelector('input[name="qrSource"]:checked')?.value;
+          if (choice === "generated") {
+            setPdfStatus("PDF kommer använda QR-koderna från steg 1.", "info");
+          } else {
+            setPdfStatus("PDF kommer använda de uppladdade QR-bilderna.", "info");
+          }
+        });
+      });
+
+      setQrStatus("Redo. Klistra in URL:er och klicka på \"Generera QR-koder\".", "info");
+      setPdfStatus("Välj mallbild, format och QR-position – klicka sedan på \"Generera PDF\".", "info");
+
+      // Rita initial tom förhandsvisning + aktivera standard-layout
+      updateLayoutPreviewActive();
+      drawAllPreviews();
+      updateGeneratedCountPill();
+    });
+  </script>
 </body>
 </html>
